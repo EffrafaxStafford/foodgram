@@ -1,13 +1,13 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
-from rest_framework import (viewsets, permissions, generics, status)
+from rest_framework import (viewsets, permissions, generics, status, filters)
+from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
-# from rest_framework.pagination import LimitOffsetPagination
 
-from recipes.models import Tags
+from recipes.models import Tags, Ingredients
 from .serializers import (UserSerializer, UserAvatarSerializer,
-                          TagSerializer,)
+                          TagSerializer, IngredientSerializer)
 from .pagination import UsersPagination
 from foodgram import settings
 
@@ -43,19 +43,24 @@ class UserAvatarViewSet(generics.UpdateAPIView, generics.DestroyAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class TagsMixin():
-    """Миксин для представления Tags."""
+class TagsViewSet(viewsets.ReadOnlyModelViewSet):
+    """Класс представления для работы с тегами."""
 
     queryset = Tags.objects.all()
     serializer_class = TagSerializer
     permission_classes = (permissions.AllowAny,)
 
 
-class TagsListViewSet(TagsMixin, generics.ListAPIView):
-    """Класс представления для работы с тегами."""
+class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
+    """Класс представления для работы с ингредиентами."""
 
+    serializer_class = IngredientSerializer
+    permission_classes = (permissions.AllowAny,)
 
-class TagsRetrieveViewSet(TagsMixin, generics.RetrieveAPIView):
-    """Класс представления для работы с тегами."""
-
-    lookup_url_kwarg = 'tag_id'
+    def get_queryset(self):
+        queryset = Ingredients.objects.all()
+        search_field = self.request.query_params.get('name', None)
+        print('\n\n', search_field, '\n\n')
+        if search_field is not None:
+            queryset = queryset.filter(name__startswith=search_field)
+        return queryset

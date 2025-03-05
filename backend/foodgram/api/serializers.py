@@ -7,7 +7,7 @@ from djoser.serializers import (
     UserSerializer as DjoserUserSerializer,
     UserCreateSerializer as DjoserUserCreateSerializer)
 
-from recipes.models import Tags
+from recipes.models import Tags, Ingredients
 
 User = get_user_model()
 
@@ -77,3 +77,11 @@ class TagSerializer(serializers.ModelSerializer):
     class Meta():
         model = Tags
         fields = '__all__'
+
+
+class IngredientSerializer(serializers.ModelSerializer):
+    """Сериализатор для работы с ингредиентами."""
+
+    class Meta():
+        model = Ingredients
+        fields = ('id', 'name', 'measurement_unit')
