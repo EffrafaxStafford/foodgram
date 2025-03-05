@@ -5,7 +5,9 @@ from rest_framework import (viewsets, permissions, generics, status)
 from djoser.views import UserViewSet as DjoserUserViewSet
 # from rest_framework.pagination import LimitOffsetPagination
 
-from .serializers import UserSerializer, UserAvatarSerializer
+from recipes.models import Tags
+from .serializers import (UserSerializer, UserAvatarSerializer,
+                          TagSerializer,)
 from .pagination import UsersPagination
 from foodgram import settings
 
@@ -15,6 +17,8 @@ User = get_user_model()
 
 class UserViewSet(DjoserUserViewSet):
     """Класс представления для модели User."""
+
+    pagination_class = UsersPagination
 
     def get_permissions(self):
         if self.action == "me" and self.request.method == "GET":
@@ -37,3 +41,21 @@ class UserAvatarViewSet(generics.UpdateAPIView, generics.DestroyAPIView):
         instance.avatar = None
         instance.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class TagsMixin():
+    """Миксин для представления Tags."""
+
+    queryset = Tags.objects.all()
+    serializer_class = TagSerializer
+    permission_classes = (permissions.AllowAny,)
+
+
+class TagsListViewSet(TagsMixin, generics.ListAPIView):
+    """Класс представления для работы с тегами."""
+
+
+class TagsRetrieveViewSet(TagsMixin, generics.RetrieveAPIView):
+    """Класс представления для работы с тегами."""
+
+    lookup_url_kwarg = 'tag_id'
