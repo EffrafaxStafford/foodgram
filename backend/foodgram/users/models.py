@@ -18,18 +18,3 @@ class FoodgramUserInterface(AbstractUser):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-
-
-# class Follow(models.Model):
-#     """Модель для хранения подписок пользователей."""
-
-#     user = models.ForeignKey(
-#         User, on_delete=models.CASCADE, related_name='user')
-#     following = models.ForeignKey(
-#         User, on_delete=models.CASCADE, related_name='following')
-
-#     class Meta:
-#         constraints = [
-#             models.UniqueConstraint(
-#                 fields=['user', 'following'], name="unique_followers",),
-#         ]
