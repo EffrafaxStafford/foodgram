@@ -1,3 +1,4 @@
+# from shortener.shortener import URLShortener
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import (viewsets, permissions, generics, status, filters, mixins)
@@ -30,6 +31,12 @@ class UserViewSet(DjoserUserViewSet):
             self.permission_classes = (permissions.IsAuthenticated,)
         return super().get_permissions()
 
+    def get_queryset(self):
+        print('\n\n', self.request.user, '\n\n')
+        queryset = super().get_queryset()
+        print('\n\n' 'KGDSJGHDJLS', '\n\n')
+        return queryset
+
     @action(detail=True, methods=['post', 'delete'])
     def subscribe(self, request, id=None):
         user = request.user
@@ -58,7 +65,7 @@ class UserAvatarView(generics.UpdateAPIView, generics.DestroyAPIView):
     """Вьюшка для обновления и удаления поля avatar модели User."""
 
     serializer_class = UserAvatarSerializer
-    # http_method_names = ('put', 'delete')
+    http_method_names = ('put', 'delete')
 
     def get_object(self):
         username = self.request.user.username
@@ -112,3 +119,12 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    # @action(detail=True, methods=['get'], url_path='get-link')
+    # def get_link(self, request, pk=None):
+    #     print('\n\n', request, '\n\n')
+    #     # url = 
+    #     short_link = 0
+    #     print('\n\n', self.__dict__, '\n\n')
+    #     return Response({'short-link': short_link}, status=status.HTTP_200_OK)
+

@@ -78,8 +78,7 @@ class Recipes(SelfNameMixin):
         verbose_name='Тег')
     ingredients = models.ManyToManyField(
         Ingredients,
-        through='IngredientRecipe',
-        # related_name='recipe',
+        through='IngredientInRecipe',
         verbose_name='Ингредиенты')
 
     class Meta:
@@ -87,15 +86,14 @@ class Recipes(SelfNameMixin):
         verbose_name_plural = 'Рецепты'
 
 
-class IngredientRecipe(models.Model):
+class IngredientInRecipe(models.Model):
     """Модель для хранения ингредиентов в рецепте и их количества."""
 
     ingredient = models.ForeignKey(Ingredients, on_delete=models.CASCADE)
     recipe = models.ForeignKey(Recipes, on_delete=models.CASCADE)
     amount = models.IntegerField(
         verbose_name='Количество',
-        validators=(MinValueValidator(MIN_VALUE_INGREDIENT_AMOUNT),),
-        default=MIN_VALUE_INGREDIENT_AMOUNT)
+        validators=(MinValueValidator(MIN_VALUE_INGREDIENT_AMOUNT),))
 
     def __str__(self):
         return f'{self.ingredient} для {self.recipe}'
