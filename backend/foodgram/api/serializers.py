@@ -95,17 +95,28 @@ class IngredientSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit')
 
 
-class SubscriptionsSerializer(serializers.ModelSerializer):
+class SubscriptionsSerializer(serializers.Serializer):
     """Сериализатор для работы с подписками пользователей."""
 
-    subscription = UserSerializer()
+    user = UserSerializer(read_only=True)
+    subscription = UserSerializer(read_only=True)
 
     class Meta():
         model = Subscriptions
-        fields = ('subscription',)
+        fields = ('user', 'subscription',)
 
-    def to_representation(self, data):
-        representation = super().to_representation(data)
+    def to_internal_value(self, data):
+        data['user'] = User.objects.get(id=data['user'])
+        data['subscription'] = User.objects.get(id=data['subscription'])
+        return super().to_internal_value(data)
+
+    def create(self, validated_data):
+        return Subscriptions.objects.create(
+            user=self.initial_data['user'],
+            subscription=self.initial_data['subscription'])
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
         return representation['subscription']
 
 

@@ -7,4 +7,3 @@ from .models import Subscriptions
 class SubscriptionsAdmin(admin.ModelAdmin):
     list_display = ('user', 'subscription',)
     # fields = ('username', 'email', 'first_name', 'last_name',)
-    search_fields = ('user',)

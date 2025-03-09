@@ -75,7 +75,7 @@ class Recipes(SelfNameMixin):
         validators=(MinValueValidator(MIN_VALUE_COOKING_TIME),))
     tags = models.ManyToManyField(
         Tags,
-        verbose_name='Тег')
+        verbose_name='Теги')
     ingredients = models.ManyToManyField(
         Ingredients,
         through='IngredientInRecipe',

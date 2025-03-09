@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import (viewsets, permissions, generics, status, filters, mixins)
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework.decorators import api_view
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 
@@ -13,7 +14,8 @@ from .serializers import (UserAvatarSerializer,
                           TagSerializer,
                           IngredientSerializer,
                           SubscriptionsSerializer,
-                          RecipesSerializer,)
+                          RecipesSerializer,
+                          UserSerializer)
 from .pagination import UsersPagination, SubscriptionsPagination
 from foodgram import settings
 
@@ -31,12 +33,6 @@ class UserViewSet(DjoserUserViewSet):
             self.permission_classes = (permissions.IsAuthenticated,)
         return super().get_permissions()
 
-    def get_queryset(self):
-        print('\n\n', self.request.user, '\n\n')
-        queryset = super().get_queryset()
-        print('\n\n' 'KGDSJGHDJLS', '\n\n')
-        return queryset
-
     @action(detail=True, methods=['post', 'delete'])
     def subscribe(self, request, id=None):
         user = request.user
@@ -49,16 +45,17 @@ class UserViewSet(DjoserUserViewSet):
                 or user == subscription):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        if request.method == 'POST':
-            Subscriptions.objects.create(user=user, subscription=subscription)
-            serializer = SubscriptionsSerializer(subscription,
-                                                 context={"request": request})
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
         if request.method == 'DELETE':
-            Subscriptions.objects.filter(
-                user=user, subscription=subscription).delete()
+            Subscriptions.objects.filter(user=user,
+                                         subscription=subscription).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+        serializer = SubscriptionsSerializer(
+            data={'user': user.id, 'subscription': subscription.id},
+            context={'request': self.request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class UserAvatarView(generics.UpdateAPIView, generics.DestroyAPIView):
