@@ -8,7 +8,7 @@ from djoser.serializers import (
     UserSerializer as DjoserUserSerializer,
     UserCreateSerializer as DjoserUserCreateSerializer)
 
-from recipes.models import Tags, Ingredients, Recipes, IngredientInRecipe
+from recipes.models import Tags, Ingredients, Recipes, IngredientInRecipe, Favorites
 from subscriptions.models import Subscriptions
 from constants import MIN_VALUE_INGREDIENT_AMOUNT
 
@@ -185,3 +185,34 @@ class RecipesSerializer(serializers.ModelSerializer):
              'measurement_unit': obj['ingredient__measurement_unit'],
              'amount': obj['amount']} for obj in ingredients]
         return representation
+
+
+class FavoritesSerializer(serializers.Serializer):
+    """Сериализатор для работы с избранными рецептами пользователей."""
+
+    user = UserSerializer(read_only=True)
+    recipe = RecipesSerializer(read_only=True)
+
+    class Meta():
+        model = Favorites
+        fields = ('id', 'user', 'recipe',)
+
+    def to_internal_value(self, data):
+        data['user'] = User.objects.get(id=data['user'])
+        data['recipe'] = Recipes.objects.get(id=data['recipe'])
+        return super().to_internal_value(data)
+
+    def create(self, validated_data):
+        return Favorites.objects.create(user=self.initial_data['user'],
+                                        recipe=self.initial_data['recipe'])
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        favorite = Favorites.objects.values().get(user=instance.user,
+                                                  recipe=instance.recipe)
+        required_fields = ('name', 'image', 'cooking_time')
+        representation['recipe'] = {
+            k: v for k, v in representation['recipe'].items()
+            if k in required_fields}
+        representation['recipe']['id'] = favorite['id']
+        return representation['recipe']

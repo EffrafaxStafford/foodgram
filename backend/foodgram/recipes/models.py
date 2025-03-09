@@ -97,3 +97,21 @@ class IngredientInRecipe(models.Model):
 
     def __str__(self):
         return f'{self.ingredient} для {self.recipe}'
+
+
+class Favorites(models.Model):
+    """Модель для хранения избранных рецептов пользователя."""
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='favorites',
+        verbose_name='Пользователь')
+    recipe = models.ForeignKey(
+        Recipes,
+        on_delete=models.CASCADE,
+        related_name='+')
+
+    class Meta:
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранные'

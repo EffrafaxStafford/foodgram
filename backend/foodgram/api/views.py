@@ -8,14 +8,15 @@ from rest_framework.decorators import api_view
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 
-from recipes.models import Tags, Ingredients, Recipes
+from recipes.models import Tags, Ingredients, Recipes, Favorites
 from subscriptions.models import Subscriptions
 from .serializers import (UserAvatarSerializer,
                           TagSerializer,
                           IngredientSerializer,
                           SubscriptionsSerializer,
                           RecipesSerializer,
-                          UserSerializer)
+                          UserSerializer,
+                          FavoritesSerializer)
 from .pagination import UsersPagination, SubscriptionsPagination
 from foodgram import settings
 
@@ -116,6 +117,28 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    @action(detail=True, methods=['post', 'delete'])
+    def favorite(self, request, pk=None):
+        user = request.user
+        recipe = self.get_object()
+        is_exists = Favorites.objects.filter(
+            user=user, recipe=recipe).exists()
+
+        if (request.method == 'POST' and is_exists
+                or request.method == 'DELETE' and not is_exists):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if request.method == 'DELETE':
+            Favorites.objects.filter(user=user, recipe=recipe).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        serializer = FavoritesSerializer(
+            data={'user': user.id, 'recipe': recipe.id},
+            context={'request': self.request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     # @action(detail=True, methods=['get'], url_path='get-link')
     # def get_link(self, request, pk=None):
