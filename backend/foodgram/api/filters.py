@@ -19,7 +19,6 @@ class RecipeFilterSet(django_filters.FilterSet):
         if self.data:
             tags = self.data.getlist('tags')
             if tags:
-                print('\n\n', tags, '\n\n')
                 qs = qs.filter(tags__slug__in=tags)
             author = self.data.getlist('author')
             if author:

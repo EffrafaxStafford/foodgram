@@ -12,19 +12,19 @@ from djoser.serializers import (
 from recipes.models import Tags, Ingredients, Recipes, IngredientInRecipe, Favorites, ShoppingCart
 from subscriptions.models import Subscriptions
 from constants import MIN_VALUE_INGREDIENT_AMOUNT
+from .fields import Base64ImageField
 
 User = get_user_model()
 
 
-class Base64ImageField(serializers.ImageField):
-    """Класс поля сериализатора для обработки изображения в формате base64."""
+class UserAvatarSerializer(serializers.ModelSerializer):
+    """Сериализатор для работы с полем avatar модели User."""
 
-    def to_internal_value(self, data):
-        if isinstance(data, str) and data.startswith('data:image'):
-            format, imgstr = data.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
-        return super().to_internal_value(data)
+    avatar = Base64ImageField(required=True, allow_null=True)
+
+    class Meta():
+        model = User
+        fields = ('avatar',)
 
 
 class UserSerializerMixin():
@@ -43,16 +43,6 @@ class UserSerializerMixin():
             'first_name': {'required': True},
             'last_name': {'required': True},
         }
-
-
-class UserAvatarSerializer(serializers.ModelSerializer):
-    """Сериализатор для работы с полем avatar модели User."""
-
-    avatar = Base64ImageField(required=True, allow_null=True)
-
-    class Meta():
-        model = User
-        fields = ('avatar',)
 
 
 class UserSerializer(UserSerializerMixin,
@@ -120,19 +110,22 @@ class RecipesSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'ingredients': ["Обязательное поле."]})
 
-        data['amounts'] = [item.get('amount') for item in data['ingredients']]
-        data['ingredients'] = [item.get('id') for item in data['ingredients']]
+        data['amounts'] = [item.get('amount')
+                           for item in data.get('ingredients', {})]
+        data['ingredients'] = [item.get('id')
+                               for item in data.get('ingredients', {})]
+        print('\n\n', data, '\n\n')
         return super().to_internal_value(data)
 
     def validate_ingredients(self, ingredients):
         if len(ingredients) != len(set(ingredients)):
             raise serializers.ValidationError("Дублирование ингредиентов.")
-        return True
+        return ingredients
 
     def validate_tags(self, tags):
         if len(tags) != len(set(tags)):
             raise serializers.ValidationError("Дублирование тегов.")
-        return True
+        return tags
 
     def create(self, validated_data):
         tags = validated_data.pop('tags')
