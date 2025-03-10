@@ -8,7 +8,7 @@ from rest_framework.decorators import api_view
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 
-from recipes.models import Tags, Ingredients, Recipes, Favorites
+from recipes.models import Tags, Ingredients, Recipes, Favorites, ShoppingCart
 from subscriptions.models import Subscriptions
 from .serializers import (UserAvatarSerializer,
                           TagSerializer,
@@ -16,8 +16,10 @@ from .serializers import (UserAvatarSerializer,
                           SubscriptionsSerializer,
                           RecipesSerializer,
                           UserSerializer,
-                          FavoritesSerializer)
-from .pagination import UsersPagination, SubscriptionsPagination
+                          FavoritesSerializer,
+                          ShoppingCartSerializer,)
+from .pagination import UsersPagination, SubscriptionsPagination, RecipesPagination
+from .filters import RecipeFilterSet
 from foodgram import settings
 
 
@@ -114,6 +116,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     queryset = Recipes.objects.all()
     serializer_class = RecipesSerializer
+    pagination_class = RecipesPagination
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RecipeFilterSet
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -139,6 +145,52 @@ class RecipesViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post', 'delete'])
+    def shopping_cart(self, request, pk=None):
+        user = request.user
+        recipe = self.get_object()
+        is_exists = ShoppingCart.objects.filter(
+            user=user, recipe=recipe).exists()
+
+        if (request.method == 'POST' and is_exists
+                or request.method == 'DELETE' and not is_exists):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if request.method == 'DELETE':
+            ShoppingCart.objects.filter(user=user, recipe=recipe).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        serializer = ShoppingCartSerializer(
+            data={'user': user.id, 'recipe': recipe.id},
+            context={'request': self.request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['get'])
+    def download_shopping_cart(self, request, pk=None):
+        user = request.user
+        recipes = user.recipes.all()
+        data = dict()
+        for recipe in recipes:
+            ingredients = recipe.ingredientinrecipe_set.all().values(
+                'ingredient__name', 'ingredient__measurement_unit', 'amount')
+            for ingredient in ingredients:
+                name = ingredient['ingredient__name']
+                unit = ingredient['ingredient__measurement_unit']
+                amount = ingredient['amount']
+                data[f'{name} ({unit})'] = data.get(
+                    f'{name} ({unit})', 0) + amount
+
+        # with open(f'{user.username}_shopping_cart', 'a', encoding='utf-8') as file:
+        #     file.write(str(data))
+
+        # response = Response(file, content_type='txt')
+        # # response['Content-Length'] = file.size
+        # response['Content-Disposition'] = 'вложение; filename="%s"' % file.name
+        return 'не забудь доделать эту функцию'
+        return Response()
 
     # @action(detail=True, methods=['get'], url_path='get-link')
     # def get_link(self, request, pk=None):

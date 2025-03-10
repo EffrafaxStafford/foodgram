@@ -3,12 +3,13 @@ import base64
 from django.db.models import F
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.exceptions import PermissionDenied
 from djoser.serializers import (
     UserSerializer as DjoserUserSerializer,
     UserCreateSerializer as DjoserUserCreateSerializer)
 
-from recipes.models import Tags, Ingredients, Recipes, IngredientInRecipe, Favorites
+from recipes.models import Tags, Ingredients, Recipes, IngredientInRecipe, Favorites, ShoppingCart
 from subscriptions.models import Subscriptions
 from constants import MIN_VALUE_INGREDIENT_AMOUNT
 
@@ -95,6 +96,105 @@ class IngredientSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit')
 
 
+class RecipesSerializer(serializers.ModelSerializer):
+    """Сериализатор для работы с рецептами."""
+
+    image = Base64ImageField(required=True, allow_null=True)
+    author = UserSerializer(read_only=True)
+    ingredients = serializers.PrimaryKeyRelatedField(
+        queryset=Ingredients.objects.all(),
+        many=True
+    )
+    amounts = serializers.ListField(
+        child=serializers.IntegerField(min_value=MIN_VALUE_INGREDIENT_AMOUNT),
+        write_only=True)
+    is_favorited = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
+
+    class Meta():
+        model = Recipes
+        fields = '__all__'
+
+    def to_internal_value(self, data):
+        if 'ingredients' not in data or not data['ingredients']:
+            raise serializers.ValidationError(
+                {'ingredients': ["Обязательное поле."]})
+
+        data['amounts'] = [item.get('amount') for item in data['ingredients']]
+        data['ingredients'] = [item.get('id') for item in data['ingredients']]
+        return super().to_internal_value(data)
+
+    def validate_ingredients(self, ingredients):
+        if len(ingredients) != len(set(ingredients)):
+            raise serializers.ValidationError("Дублирование ингредиентов.")
+        return True
+
+    def validate_tags(self, tags):
+        if len(tags) != len(set(tags)):
+            raise serializers.ValidationError("Дублирование тегов.")
+        return True
+
+    def create(self, validated_data):
+        tags = validated_data.pop('tags')
+        ingredients = validated_data.pop('ingredients')
+        amounts = validated_data.pop('amounts')
+        recipe = Recipes.objects.create(**validated_data)
+
+        recipe.tags.set(tags)
+        for ingredient, amount in zip(ingredients, amounts):
+            recipe.ingredients.add(ingredient,
+                                   through_defaults={'amount': amount})
+        return recipe
+
+    def update(self, instance, validated_data):
+        if self.context['request'].user != instance.author:
+            raise PermissionDenied()
+        if validated_data.get('tags') is None:
+            raise serializers.ValidationError({'tags': ["Обязательное поле."]})
+
+        tags = validated_data.pop('tags')
+        ingredients = validated_data.pop('ingredients')
+        amounts = validated_data.pop('amounts')
+        recipe = super().update(instance, validated_data)
+
+        recipe.tags.set(tags)
+        recipe.ingredients.clear()
+        for ingredient, amount in zip(ingredients, amounts):
+            recipe.ingredients.add(ingredient,
+                                   through_defaults={'amount': amount})
+        return recipe
+
+    def get_is_favorited(self, obj):
+        user = self.context['request'].user
+        if not user.is_authenticated:
+            return False
+        return Favorites.objects.filter(
+            user=user, recipe=obj).exists()
+
+    def get_is_in_shopping_cart(self, obj):
+        user = self.context['request'].user
+        if not user.is_authenticated:
+            return False
+        return ShoppingCart.objects.filter(
+            user=user, recipe=obj).exists()
+
+    def to_representation(self, recipe):
+        representation = super().to_representation(recipe)
+        representation['tags'] = recipe.tags.all().values()
+
+        ingredients = recipe.ingredientinrecipe_set.all().values(
+            'ingredient_id', 'ingredient__name',
+            'ingredient__measurement_unit', 'amount')
+
+        representation['ingredients'] = [
+            {'id': obj['ingredient_id'],
+                'name': obj['ingredient__name'],
+                'measurement_unit': obj['ingredient__measurement_unit'],
+                'amount': obj['amount']} for obj in ingredients]
+
+        return representation
+
+
 class SubscriptionsSerializer(serializers.Serializer):
     """Сериализатор для работы с подписками пользователей."""
 
@@ -117,84 +217,27 @@ class SubscriptionsSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
+        recipes = instance.subscription.recipes.all().values(
+            'id', 'name', 'image', 'cooking_time')
+        recipes_count = len(recipes)
+
+        recipes_limit = self._context['request'].GET.get('recipes_limit')
+        if recipes_limit and int(recipes_limit) >= 0:
+            recipes = recipes[:int(recipes_limit)]
+
+        representation['subscription']['recipes'] = recipes
+        representation['subscription']['recipes_count'] = recipes_count
         return representation['subscription']
 
 
-class RecipesSerializer(serializers.ModelSerializer):
-    """Сериализатор для работы с рецептами."""
-
-    image = Base64ImageField(required=True, allow_null=True)
-    author = UserSerializer(read_only=True)
-    ingredients = serializers.PrimaryKeyRelatedField(
-        queryset=Ingredients.objects.all(),
-        many=True
-    )
-    amounts = serializers.ListField(
-        child=serializers.IntegerField(min_value=MIN_VALUE_INGREDIENT_AMOUNT),
-        write_only=True)
-
-    class Meta():
-        model = Recipes
-        fields = '__all__'
-
-    def to_internal_value(self, data):
-        if 'ingredients' not in data:
-            raise serializers.ValidationError(
-                {'ingredients': ["Обязательное поле."]})
-
-        data['amounts'] = [item.get('amount') for item in data['ingredients']]
-        data['ingredients'] = [item.get('id') for item in data['ingredients']]
-        return super().to_internal_value(data)
-
-    def create(self, validated_data):
-        tags = validated_data.pop('tags')
-        ingredients = validated_data.pop('ingredients')
-        amounts = validated_data.pop('amounts')
-        recipe = Recipes.objects.create(**validated_data)
-
-        recipe.tags.set(tags)
-        for ingredient, amount in zip(ingredients, amounts):
-            recipe.ingredients.add(ingredient,
-                                   through_defaults={'amount': amount})
-        return recipe
-
-    def update(self, instance, validated_data):
-        tags = validated_data.pop('tags')
-        ingredients = validated_data.pop('ingredients')
-        amounts = validated_data.pop('amounts')
-        recipe = super().update(instance, validated_data)
-
-        recipe.tags.set(tags)
-        recipe.ingredients.clear()
-        for ingredient, amount in zip(ingredients, amounts):
-            recipe.ingredients.add(ingredient,
-                                   through_defaults={'amount': amount})
-        return recipe
-
-    def to_representation(self, recipe):
-        representation = super().to_representation(recipe)
-        representation['tags'] = recipe.tags.all().values()
-
-        ingredients = recipe.ingredientinrecipe_set.all().values(
-            'ingredient_id', 'ingredient__name',
-            'ingredient__measurement_unit', 'amount')
-
-        representation['ingredients'] = [
-            {'id': obj['ingredient_id'],
-             'name': obj['ingredient__name'],
-             'measurement_unit': obj['ingredient__measurement_unit'],
-             'amount': obj['amount']} for obj in ingredients]
-        return representation
-
-
-class FavoritesSerializer(serializers.Serializer):
-    """Сериализатор для работы с избранными рецептами пользователей."""
+class FavoritesShoppingCartMixin(serializers.Serializer):
+    """Миксин для сериализаторов моделей Favorites и ShoppingCart."""
 
     user = UserSerializer(read_only=True)
     recipe = RecipesSerializer(read_only=True)
 
     class Meta():
-        model = Favorites
+        abstract = True
         fields = ('id', 'user', 'recipe',)
 
     def to_internal_value(self, data):
@@ -203,16 +246,33 @@ class FavoritesSerializer(serializers.Serializer):
         return super().to_internal_value(data)
 
     def create(self, validated_data):
-        return Favorites.objects.create(user=self.initial_data['user'],
-                                        recipe=self.initial_data['recipe'])
+        model = self.Meta.model
+        return model.objects.create(user=self.initial_data['user'],
+                                    recipe=self.initial_data['recipe'])
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        favorite = Favorites.objects.values().get(user=instance.user,
-                                                  recipe=instance.recipe)
+        model = self.Meta.model
+        favorite = model.objects.values().get(user=instance.user,
+                                              recipe=instance.recipe)
         required_fields = ('name', 'image', 'cooking_time')
+        print('\n\n representation \n', representation, '\n\n')
         representation['recipe'] = {
             k: v for k, v in representation['recipe'].items()
             if k in required_fields}
         representation['recipe']['id'] = favorite['id']
         return representation['recipe']
+
+
+class FavoritesSerializer(FavoritesShoppingCartMixin):
+    """Сериализатор для работы с избранными рецептами пользователей."""
+
+    class Meta(FavoritesShoppingCartMixin.Meta):
+        model = Favorites
+
+
+class ShoppingCartSerializer(FavoritesShoppingCartMixin):
+    """Сериализатор для работы со списком покупок пользователей."""
+
+    class Meta(FavoritesShoppingCartMixin.Meta):
+        model = ShoppingCart

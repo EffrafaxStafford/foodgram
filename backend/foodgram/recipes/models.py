@@ -89,14 +89,23 @@ class Recipes(SelfNameMixin):
 class IngredientInRecipe(models.Model):
     """Модель для хранения ингредиентов в рецепте и их количества."""
 
-    ingredient = models.ForeignKey(Ingredients, on_delete=models.CASCADE)
-    recipe = models.ForeignKey(Recipes, on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(
+        Ingredients,
+        on_delete=models.CASCADE,
+        verbose_name='Ингрединет')
+    recipe = models.ForeignKey(
+        Recipes,
+        on_delete=models.CASCADE)
     amount = models.IntegerField(
         verbose_name='Количество',
         validators=(MinValueValidator(MIN_VALUE_INGREDIENT_AMOUNT),))
 
     def __str__(self):
-        return f'{self.ingredient} для {self.recipe}'
+        return f'{self.ingredient}'
+
+    class Meta:
+        verbose_name = 'Ингрединет'
+        verbose_name_plural = 'Ингрединеты'
 
 
 class Favorites(models.Model):
@@ -115,3 +124,22 @@ class Favorites(models.Model):
     class Meta:
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранные'
+
+
+class ShoppingCart(models.Model):
+    """Модель для хранения списка покупок пользователя."""
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shopping_cart',
+        verbose_name='Пользователь')
+    recipe = models.ForeignKey(
+        Recipes,
+        on_delete=models.CASCADE,
+        related_name='+',
+        verbose_name='Рецепт')
+
+    class Meta:
+        verbose_name = 'Список покупок'
+        verbose_name_plural = 'Список покупок'
