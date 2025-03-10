@@ -1,4 +1,4 @@
-# from shortener.shortener import URLShortener
+# from shortener import URLShortener
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import (viewsets, permissions, generics, status, filters, mixins)
@@ -8,8 +8,8 @@ from rest_framework.decorators import api_view
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 
-from recipes.models import Tags, Ingredients, Recipes, Favorites, ShoppingCart
-from subscriptions.models import Subscriptions
+# from django_url_shortener.utils import shorten_url
+from foodgram import settings
 from .serializers import (UserAvatarSerializer,
                           TagSerializer,
                           IngredientSerializer,
@@ -20,7 +20,9 @@ from .serializers import (UserAvatarSerializer,
                           ShoppingCartSerializer,)
 from .pagination import UsersPagination, SubscriptionsPagination, RecipesPagination
 from .filters import RecipeFilterSet
-from foodgram import settings
+from .shortener import RecipeURLShortener
+from recipes.models import Tags, Ingredients, Recipes, Favorites, ShoppingCart
+from subscriptions.models import Subscriptions
 
 
 User = get_user_model()
@@ -192,11 +194,8 @@ class RecipesViewSet(viewsets.ModelViewSet):
         return 'не забудь доделать эту функцию'
         return Response()
 
-    # @action(detail=True, methods=['get'], url_path='get-link')
-    # def get_link(self, request, pk=None):
-    #     print('\n\n', request, '\n\n')
-    #     # url = 
-    #     short_link = 0
-    #     print('\n\n', self.__dict__, '\n\n')
-    #     return Response({'short-link': short_link}, status=status.HTTP_200_OK)
-
+    @action(detail=True, methods=['get'], url_path='get-link')
+    def get_link(self, request, pk=None):
+        path = '/rcp/' + pk + '/'
+        short_link = request.build_absolute_uri(path)
+        return Response({'short-link': short_link}, status=status.HTTP_200_OK)
