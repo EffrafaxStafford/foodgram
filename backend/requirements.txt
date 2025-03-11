@@ -8,7 +8,6 @@ cryptography==44.0.2
 defusedxml==0.7.1
 Django==3.2.16
 django-filter==23.1
-django-link-url-shortener==1.0
 django-templated-mail==1.1.1
 djangorestframework==3.12.4
 djangorestframework-simplejwt==4.7.2
