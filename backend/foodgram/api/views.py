@@ -1,6 +1,7 @@
-# from shortener import URLShortener
+from django.db.models import F
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
 from rest_framework import (viewsets, permissions, generics, status, filters, mixins)
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -8,7 +9,6 @@ from rest_framework.decorators import api_view
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 
-# from django_url_shortener.utils import shorten_url
 from foodgram import settings
 from .serializers import (UserAvatarSerializer,
                           TagSerializer,
@@ -20,7 +20,6 @@ from .serializers import (UserAvatarSerializer,
                           ShoppingCartSerializer,)
 from .pagination import UsersPagination, SubscriptionsPagination, RecipesPagination
 from .filters import RecipeFilterSet
-from .shortener import RecipeURLShortener
 from recipes.models import Tags, Ingredients, Recipes, Favorites, ShoppingCart
 from subscriptions.models import Subscriptions
 
@@ -126,6 +125,11 @@ class RecipesViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
+    def destroy(self, request, *args, **kwargs):
+        if request.user == self.get_object().author:
+            return super().destroy(request, args, kwargs)
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
     @action(detail=True, methods=['post', 'delete'])
     def favorite(self, request, pk=None):
         user = request.user
@@ -173,29 +177,28 @@ class RecipesViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def download_shopping_cart(self, request, pk=None):
         user = request.user
-        recipes = user.recipes.all()
+        recipes = (wishlist.recipe for wishlist in user.wishlist_recipes.all())
         data = dict()
+
         for recipe in recipes:
-            ingredients = recipe.ingredientinrecipe_set.all().values(
-                'ingredient__name', 'ingredient__measurement_unit', 'amount')
+            ingredients = recipe.ingredientinrecipe_set.annotate(
+                name=F('ingredient__name'),
+                unit=F('ingredient__measurement_unit')).all()
             for ingredient in ingredients:
-                name = ingredient['ingredient__name']
-                unit = ingredient['ingredient__measurement_unit']
-                amount = ingredient['amount']
-                data[f'{name} ({unit})'] = data.get(
-                    f'{name} ({unit})', 0) + amount
+                key = f'{ingredient.name} ({ingredient.unit}) - '
+                data[key] = data.get(key, 0) + ingredient.amount
 
-        # with open(f'{user.username}_shopping_cart', 'a', encoding='utf-8') as file:
-        #     file.write(str(data))
-
-        # response = Response(file, content_type='txt')
-        # # response['Content-Length'] = file.size
-        # response['Content-Disposition'] = 'вложение; filename="%s"' % file.name
-        return 'не забудь доделать эту функцию'
-        return Response()
+        file_content = '\n'.join('\t' + k + str(v) for k, v in data.items())
+        filename = f'{user.username}_shopping_cart'
+        with open(filename, 'w+') as file:
+            file.write('Список покупок:\n')
+            file.write(file_content)
+            response = HttpResponse(file, content_type='application/txt')
+            response['Content-Disposition'] = 'attachment; filename="%s"' % filename
+            return response
 
     @action(detail=True, methods=['get'], url_path='get-link')
     def get_link(self, request, pk=None):
         path = '/rcp/' + pk + '/'
         short_link = request.build_absolute_uri(path)
-        return Response({'short-link': short_link}, status=status.HTTP_200_OK)
+        return Response({'short-link': short_link})

@@ -14,8 +14,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['127.0.0.1']
 
-BASE_URL = 'http://127.0.0.1:8000'
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
