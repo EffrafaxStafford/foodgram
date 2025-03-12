@@ -11,7 +11,7 @@ from constants import (MAX_LENGTH_TAG, MAX_LENGTH_INGREDIENT,
 User = get_user_model()
 
 
-class SelfNameMixin(models.Model):
+class SelfNameMixin():
     """Миксин для определения __str__ моделей Tags, Ingredients и Recipes."""
 
     class Meta:
@@ -21,7 +21,7 @@ class SelfNameMixin(models.Model):
         return self.name
 
 
-class Tags(SelfNameMixin):
+class Tags(SelfNameMixin, models.Model):
     """Модель для хранения тегов."""
 
     name = models.CharField(
@@ -38,12 +38,13 @@ class Tags(SelfNameMixin):
         verbose_name_plural = 'Теги'
 
 
-class Ingredients(SelfNameMixin):
+class Ingredients(SelfNameMixin, models.Model):
     """Модель для хранения ингредиентов."""
 
     name = models.CharField(
         verbose_name='Название ингредиента',
-        max_length=MAX_LENGTH_INGREDIENT)
+        max_length=MAX_LENGTH_INGREDIENT,
+        unique=True)
     measurement_unit = models.CharField(
         verbose_name='Единица измерения',
         max_length=MAX_LENGTH_UNIT)
@@ -53,7 +54,7 @@ class Ingredients(SelfNameMixin):
         verbose_name_plural = 'Ингредиенты'
 
 
-class Recipes(SelfNameMixin):
+class Recipes(SelfNameMixin, models.Model):
     """Модель для хранения рецептов."""
 
     author = models.ForeignKey(

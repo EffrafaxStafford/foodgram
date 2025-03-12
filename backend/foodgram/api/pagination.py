@@ -18,5 +18,5 @@ class SubscriptionsPagination(PageNumberPagination):
 class RecipesPagination(PageNumberPagination):
     """Класс для пагинации рецептов."""
 
-    page_size = 10
+    page_size = 6
     page_size_query_param = 'limit'
