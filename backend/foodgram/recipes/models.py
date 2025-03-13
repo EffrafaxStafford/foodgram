@@ -93,10 +93,12 @@ class IngredientInRecipe(models.Model):
     ingredient = models.ForeignKey(
         Ingredients,
         on_delete=models.CASCADE,
-        verbose_name='Ингрединет')
+        verbose_name='Ингрединет',
+        related_name='ingredientinrecipe')
     recipe = models.ForeignKey(
         Recipes,
-        on_delete=models.CASCADE)
+        on_delete=models.CASCADE,
+        related_name='ingredientinrecipe')
     amount = models.IntegerField(
         verbose_name='Количество',
         validators=(MinValueValidator(MIN_VALUE_INGREDIENT_AMOUNT),))
@@ -138,8 +140,7 @@ class ShoppingCart(models.Model):
     recipe = models.ForeignKey(
         Recipes,
         on_delete=models.CASCADE,
-        related_name='+',
-        verbose_name='Рецепт')
+        related_name='+')
 
     class Meta:
         verbose_name = 'Список покупок'
