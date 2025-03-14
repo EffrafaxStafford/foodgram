@@ -1,4 +1,3 @@
-from django.db.models import F
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
@@ -15,7 +14,7 @@ from .serializers import (UserAvatarSerializer,
                           RecipesSerializer,
                           FavoritesSerializer,
                           ShoppingCartSerializer,)
-from .pagination import UsersPagination, SubscriptionsPagination, RecipesPagination
+from .pagination import UsersRecipePagination
 from .filters import RecipeFilterSet
 from recipes.models import Tags, Ingredients, Recipes, Favorites, ShoppingCart
 from subscriptions.models import Subscriptions
@@ -28,7 +27,7 @@ User = get_user_model()
 class UserViewSet(DjoserUserViewSet):
     """Вьюсет для модели User и подписок пользователей."""
 
-    pagination_class = UsersPagination
+    pagination_class = UsersRecipePagination
 
     def get_permissions(self):
         if self.action == "me" and self.request.method == "GET":
@@ -104,7 +103,7 @@ class SubscriptionsViewSet(mixins.ListModelMixin,
     """Вьюсет для перечисления подиписчиков пользователя."""
 
     serializer_class = SubscriptionsSerializer
-    pagination_class = SubscriptionsPagination
+    pagination_class = UsersRecipePagination
 
     def get_queryset(self):
         return Subscriptions.objects.filter(user=self.request.user)
@@ -115,7 +114,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     queryset = Recipes.objects.all()
     serializer_class = RecipesSerializer
-    pagination_class = RecipesPagination
+    pagination_class = UsersRecipePagination
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilterSet
@@ -169,7 +168,8 @@ class RecipesViewSet(viewsets.ModelViewSet):
         with open(filename, 'w+') as file:
             file.write(shopping_list)
             response = HttpResponse(file, content_type='application/txt')
-            response['Content-Disposition'] = 'attachment; filename="%s"' % filename
+            response[
+                'Content-Disposition'] = 'attachment; filename="%s"' % filename
             return response
 
     @action(detail=True, methods=['get'], url_path='get-link')
