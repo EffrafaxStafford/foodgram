@@ -19,6 +19,7 @@ from .pagination import UsersPagination, SubscriptionsPagination, RecipesPaginat
 from .filters import RecipeFilterSet
 from recipes.models import Tags, Ingredients, Recipes, Favorites, ShoppingCart
 from subscriptions.models import Subscriptions
+from .utils import get_shopping_list
 
 
 User = get_user_model()
@@ -127,11 +128,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return super().destroy(request, args, kwargs)
         return Response(status=status.HTTP_403_FORBIDDEN)
 
-    @action(detail=True, methods=['post', 'delete'])
-    def favorite(self, request, pk=None):
+    def _recipe_detail_post_delete(self, request, pk, MODEL, SERIALIZER):
         user = request.user
         recipe = self.get_object()
-        is_exists = Favorites.objects.filter(
+        is_exists = MODEL.objects.filter(
             user=user, recipe=recipe).exists()
 
         if (request.method == 'POST' and is_exists
@@ -139,57 +139,35 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         if request.method == 'DELETE':
-            Favorites.objects.filter(user=user, recipe=recipe).delete()
+            MODEL.objects.filter(user=user, recipe=recipe).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        serializer = FavoritesSerializer(
+        serializer = SERIALIZER(
             data={'user': user.id, 'recipe': recipe.id},
             context={'request': self.request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post', 'delete'])
+    def favorite(self, request, pk=None):
+        return self._recipe_detail_post_delete(
+            request, pk, Favorites, FavoritesSerializer)
 
     @action(detail=True, methods=['post', 'delete'])
     def shopping_cart(self, request, pk=None):
-        user = request.user
-        recipe = self.get_object()
-        is_exists = ShoppingCart.objects.filter(
-            user=user, recipe=recipe).exists()
-
-        if (request.method == 'POST' and is_exists
-                or request.method == 'DELETE' and not is_exists):
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        if request.method == 'DELETE':
-            ShoppingCart.objects.filter(user=user, recipe=recipe).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-
-        serializer = ShoppingCartSerializer(
-            data={'user': user.id, 'recipe': recipe.id},
-            context={'request': self.request})
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return self._recipe_detail_post_delete(
+            request, pk, ShoppingCart, ShoppingCartSerializer)
 
     @action(detail=False, methods=['get'])
     def download_shopping_cart(self, request, pk=None):
         user = request.user
-        recipes = (wishlist.recipe for wishlist in user.wishlist_recipes.all())
-        data = dict()
+        recipes = [wishlist.recipe for wishlist in user.wishlist_recipes.all()]
 
-        for recipe in recipes:
-            ingredients = recipe.ingredientinrecipe_set.annotate(
-                name=F('ingredient__name'),
-                unit=F('ingredient__measurement_unit')).all()
-            for ingredient in ingredients:
-                key = f'{ingredient.name} ({ingredient.unit}) - '
-                data[key] = data.get(key, 0) + ingredient.amount
-
-        file_content = '\n'.join('\t' + k + str(v) for k, v in data.items())
+        shopping_list = get_shopping_list(recipes)
         filename = f'{user.username}_shopping_cart'
         with open(filename, 'w+') as file:
-            file.write('Список покупок:\n')
-            file.write(file_content)
+            file.write(shopping_list)
             response = HttpResponse(file, content_type='application/txt')
             response['Content-Disposition'] = 'attachment; filename="%s"' % filename
             return response
