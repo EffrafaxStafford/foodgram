@@ -14,7 +14,6 @@ from .serializers import (UserAvatarSerializer,
                           RecipesSerializer,
                           FavoritesSerializer,
                           ShoppingCartSerializer,)
-from .pagination import UsersRecipePagination
 from .filters import RecipeFilterSet
 from recipes.models import Tags, Ingredients, Recipes, Favorites, ShoppingCart
 from subscriptions.models import Subscriptions
@@ -26,8 +25,6 @@ User = get_user_model()
 
 class UserViewSet(DjoserUserViewSet):
     """Вьюсет для модели User и подписок пользователей."""
-
-    pagination_class = UsersRecipePagination
 
     def get_permissions(self):
         if self.action == "me" and self.request.method == "GET":
@@ -81,6 +78,7 @@ class TagsViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Tags.objects.all()
     serializer_class = TagSerializer
+    pagination_class = None
     permission_classes = (permissions.AllowAny,)
 
 
@@ -89,6 +87,7 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
 
     serializer_class = IngredientSerializer
     permission_classes = (permissions.AllowAny,)
+    pagination_class = None
 
     def get_queryset(self):
         queryset = Ingredients.objects.all()
@@ -103,7 +102,6 @@ class SubscriptionsViewSet(mixins.ListModelMixin,
     """Вьюсет для перечисления подиписчиков пользователя."""
 
     serializer_class = SubscriptionsSerializer
-    pagination_class = UsersRecipePagination
 
     def get_queryset(self):
         return Subscriptions.objects.filter(user=self.request.user)
@@ -112,9 +110,8 @@ class SubscriptionsViewSet(mixins.ListModelMixin,
 class RecipesViewSet(viewsets.ModelViewSet):
     """Вьюсет для модели Recipes."""
 
-    queryset = Recipes.objects.all()
+    queryset = Recipes.objects.all().distinct()
     serializer_class = RecipesSerializer
-    pagination_class = UsersRecipePagination
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilterSet
@@ -167,10 +164,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
         filename = f'{user.username}_shopping_cart'
         with open(filename, 'w+') as file:
             file.write(shopping_list)
-            response = HttpResponse(file, content_type='application/txt')
-            response[
-                'Content-Disposition'] = 'attachment; filename="%s"' % filename
-            return response
+        response = HttpResponse(open(filename, 'r'), content_type='text/txt')
+        response[
+            'Content-Disposition'] = 'attachment; filename="%s"' % filename
+        return response
 
     @action(detail=True, methods=['get'], url_path='get-link')
     def get_link(self, request, pk=None):

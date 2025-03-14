@@ -36,6 +36,7 @@ class Tags(SelfNameMixin, models.Model):
     class Meta:
         verbose_name = 'Тег'
         verbose_name_plural = 'Теги'
+        ordering = ('name',)
 
 
 class Ingredients(SelfNameMixin, models.Model):
@@ -52,6 +53,7 @@ class Ingredients(SelfNameMixin, models.Model):
     class Meta:
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
+        ordering = ('name',)
 
 
 class Recipes(SelfNameMixin, models.Model):
@@ -85,6 +87,7 @@ class Recipes(SelfNameMixin, models.Model):
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
+        ordering = ('name',)
 
 
 class IngredientInRecipe(models.Model):

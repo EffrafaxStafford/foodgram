@@ -10,9 +10,14 @@ application = get_wsgi_application()
 from recipes.models import Ingredients
 
 
+def del_model_data(model):
+    """Удаляет данные в модели."""
+    model.objects.all().delete()
+
+
 def read_csv(filename):
     """Считывает данные из csv и возвращает список строк таблицы."""
-    path = os.path.join('../../data', filename)
+    path = os.path.join('../data', filename)
     with open(path, encoding='utf-8') as csv_file:
         reader = csv.reader(csv_file)
         return list(reader)
@@ -26,4 +31,5 @@ def load_ingredients_data():
 
 
 if __name__ == '__main__':
+    del_model_data(Ingredients)
     load_ingredients_data()
