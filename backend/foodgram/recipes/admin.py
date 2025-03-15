@@ -17,15 +17,20 @@ class IngredientsAdmin(admin.ModelAdmin):
 
 class IngredientInRecipeInline(admin.TabularInline):
     model = IngredientInRecipe
+    min_num = 1
     extra = 0
 
 
 @admin.register(Recipes)
 class RecipesAdmin(admin.ModelAdmin):
-    list_display = ('name', 'author', 'id',)
+    list_display = ('name', 'author', 'id', 'in_favorites_count')
     search_fields = ('name', 'author',)
-    filter_fields = ('tags')
+    filter_fields = ('tags',)
+    filter_horizontal = ('tags', 'ingredients')
     inlines = (IngredientInRecipeInline,)
+
+    def in_favorites_count(self, obj):
+        return obj.users.count()
 
 
 @admin.register(Favorites)

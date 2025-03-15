@@ -25,3 +25,6 @@ class Subscriptions(models.Model):
             models.UniqueConstraint(
                 fields=['user', 'subscription'], name="unique_subscription",),
         ]
+
+    def __str__(self):
+        return f'{self.user.username} - {self.subscription.username}'
