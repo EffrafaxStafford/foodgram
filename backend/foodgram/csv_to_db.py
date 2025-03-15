@@ -2,11 +2,12 @@ import csv
 import os
 
 from django.core.wsgi import get_wsgi_application
-from recipes.models import Ingredients
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'foodgram.settings')
 
 application = get_wsgi_application()
+
+from recipes.models import Ingredients
 
 
 def del_model_data(model):
