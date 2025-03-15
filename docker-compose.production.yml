@@ -1,0 +1,41 @@
+version: '3.3'
+
+volumes:
+  pg_data:
+  static:
+  media:
+
+services:
+  db:
+    container_name: foodgram-db
+    image: postgres:13.10
+    env_file: .env
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+  backend:
+    container_name: foodgram-back
+    image: effrafax21/foodgram_backend
+    env_file: .env
+    depends_on:
+      - db
+    volumes:
+      - static:/backend_static
+      - media:/app/foodgram/media
+  frontend:
+    container_name: foodgram-front
+    image: effrafax21/foodgram_frontend
+    command: cp -r /app/build/. /frontend_static/
+    volumes:
+      - static:/frontend_static
+  nginx:
+    container_name: foodgram-proxy
+    image: effrafax21/foodgram_nginx
+    ports:
+      - "9000:80"
+    depends_on:
+      - backend
+      - frontend
+    volumes:
+      - static:/staticfiles
+      - static:/usr/share/nginx/html/
+      - media:/media

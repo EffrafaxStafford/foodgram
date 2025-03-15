@@ -1,9 +1,10 @@
 import django_filters
-
-from recipes.models import Recipes, Favorites, ShoppingCart
+from recipes.models import Favorites, Recipes, ShoppingCart
 
 
 class RecipeFilterSet(django_filters.FilterSet):
+    """Класс для фильтрации рецептов."""
+
     is_favorited = django_filters.BooleanFilter()
     is_in_shopping_cart = django_filters.BooleanFilter()
     tags = django_filters.CharFilter(field_name='tags__slug')
