@@ -6,4 +6,4 @@ from rest_framework.permissions import AllowAny
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def short_link(request, recipe_id=None):
-    return redirect(f'/api/recipes/{recipe_id}/')
+    return redirect(f'/recipes/{recipe_id}/')
