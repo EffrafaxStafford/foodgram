@@ -1,11 +1,10 @@
+from api.views import RecipesViewSet
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-from .views import short_link
-from api.views import RecipesViewSet
-
+# from .views import short_link
 urlpatterns = [
     # path('rcp/<int:recipe_id>/', short_link),
     path('rcp/<int:recipe_id>/', RecipesViewSet.as_view()),
