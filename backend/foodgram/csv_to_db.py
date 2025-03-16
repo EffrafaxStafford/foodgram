@@ -7,7 +7,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'foodgram.settings')
 
 application = get_wsgi_application()
 
-from recipes.models import Ingredients
+from recipes.models import Ingredients  # noqa: E402
 
 
 def del_model_data(model):
