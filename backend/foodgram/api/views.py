@@ -3,12 +3,12 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
-from recipes.models import Favorites, Ingredients, Recipes, ShoppingCart, Tags
 from rest_framework import generics, mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from subscriptions.models import Subscriptions
 
+from recipes.models import Favorites, Ingredients, Recipes, ShoppingCart, Tags
+from subscriptions.models import Subscriptions
 from .filters import RecipeFilterSet
 from .serializers import (FavoritesSerializer, IngredientSerializer,
                           RecipesSerializer, ShoppingCartSerializer,

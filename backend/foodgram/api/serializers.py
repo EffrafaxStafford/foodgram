@@ -1,14 +1,14 @@
 from django.contrib.auth import get_user_model
 from django.db.models import F
-from djoser.serializers import \
-    UserCreateSerializer as DjoserUserCreateSerializer
-from djoser.serializers import UserSerializer as DjoserUserSerializer
-from recipes.models import (Favorites, IngredientInRecipe, Ingredients,
-                            Recipes, ShoppingCart, Tags)
+from djoser.serializers import (
+    UserSerializer as DjoserUserSerializer,
+    UserCreateSerializer as DjoserUserCreateSerializer)
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
-from subscriptions.models import Subscriptions
 
+from recipes.models import (Favorites, IngredientInRecipe, Ingredients,
+                            Recipes, ShoppingCart, Tags)
+from subscriptions.models import Subscriptions
 from .fields import Base64ImageField
 from .utils import create_M2M_recipe_field
 
