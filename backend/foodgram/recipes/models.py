@@ -68,6 +68,7 @@ class Recipes(SelfNameMixin, models.Model):
         verbose_name='Описание')
     image = models.ImageField(
         upload_to='recipes/image/',
+        verbose_name='Изображение',
         null=True,
         default=None)
     cooking_time = models.IntegerField(

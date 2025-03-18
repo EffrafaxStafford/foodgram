@@ -11,10 +11,10 @@ class RecipeFilterSet(django_filters.FilterSet):
 
     class Meta:
         model = Recipes
-        fields = ['is_favorited', 'is_in_shopping_cart', 'author', 'tags']
+        fields = ('is_favorited', 'is_in_shopping_cart', 'author', 'tags')
 
     @property
-    def qs(self):
+    def qs(self):  # переопредедление функции django_filters.FilterSet
         user = self.request.user
         qs = self.queryset
         if self.data:
