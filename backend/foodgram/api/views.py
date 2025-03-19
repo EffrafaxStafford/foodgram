@@ -157,11 +157,11 @@ class RecipesViewSet(viewsets.ModelViewSet):
         recipes = [wishlist.recipe for wishlist in user.wishlist_recipes.all()]
 
         shopping_list = get_shopping_list(recipes)
-        filename = f'{user.username}_shopping_cart'
+        filename = 'shopping_cart.txt'
         with open(filename, 'w+') as file:
             file.write(shopping_list)
         response = HttpResponse(open(filename, 'r').read(),
-                                content_type='text/txt')
+                                content_type='text/plain')
         response[
             'Content-Disposition'] = 'attachment; filename="shopping_cart.txt"'
         return response
