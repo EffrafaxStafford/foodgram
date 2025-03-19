@@ -33,7 +33,8 @@ class RecipesAdmin(admin.ModelAdmin):
     filter_horizontal = ('tags', 'ingredients')
     inlines = (IngredientInRecipeInline,)
 
-    def in_favorites_count(self, obj):
+    @admin.display(description="В списке избранных")
+    def in_favorites_count(self, obj, verbose_name='Рецепт'):
         return obj.users.count()
 
     def preview(self, obj):

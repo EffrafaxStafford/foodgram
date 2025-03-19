@@ -9,7 +9,8 @@ class FoodgramUserInterface(AbstractUser):
 
     email = models.EmailField(
         max_length=MAX_LENGTH_EMAIL,
-        unique=True)
+        unique=True,
+        verbose_name='Почта')
     avatar = models.ImageField(
         upload_to='users/avatar/',
         null=True,
