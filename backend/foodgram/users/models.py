@@ -15,6 +15,8 @@ class FoodgramUserInterface(AbstractUser):
         upload_to='users/avatar/',
         null=True,
         default=None)
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
 
     def __str__(self):
         return self.username
