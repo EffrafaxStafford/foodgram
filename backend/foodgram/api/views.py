@@ -164,7 +164,8 @@ class RecipesViewSet(viewsets.ModelViewSet):
             open(filename, 'r').read(),
             content_type='text/txt',
             content_disposition='attachment; filename="shopping_cart.txt"')
-        # response.content_disposition = 'attachment; filename="shopping_cart.txt"'
+        # response.content_disposition =
+        # 'attachment; filename="shopping_cart.txt"'
         # response[
         #     'Content-Disposition'] = 'attachment; filename="%s"' % filename
         return response
