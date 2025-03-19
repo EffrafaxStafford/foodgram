@@ -160,14 +160,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
         filename = f'{user.username}_shopping_cart'
         with open(filename, 'w+') as file:
             file.write(shopping_list)
-        response = HttpResponse(
-            open(filename, 'r').read(),
-            content_type='text/txt',
-            content_disposition='attachment; filename="shopping_cart.txt"')
-        # response.content_disposition =
-        # 'attachment; filename="shopping_cart.txt"'
-        # response[
-        #     'Content-Disposition'] = 'attachment; filename="%s"' % filename
+        response = HttpResponse(open(filename, 'r').read(),
+                                content_type='text/txt')
+        response[
+            'Content-Disposition'] = 'attachment; filename="shopping_cart.txt"'
         return response
 
     @action(detail=True, methods=['get'], url_path='get-link')
